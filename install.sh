@@ -4,7 +4,7 @@ cd $HOME
 OS=$NAME
 
 case "$OS" in
-Ubuntu) sudo apt update && sudo apt upgrade -y && sudo apt install zsh stow curl
+Ubuntu) sudo apt update && sudo apt upgrade -y && sudo apt install zsh stow
         ;;
 Fedora) sudo dnf upgrade -y && sudo dnf install zsh stow curl -y
         ;;
