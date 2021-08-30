@@ -6,6 +6,8 @@ OS=$NAME
 case "$OS" in
 Ubuntu) sudo apt update && sudo apt upgrade -y && sudo apt install zsh stow -y
         ;;
+Debian) sudo apt update && sudo apt upgrade -y && sudo apt install zsh stow -y
+;;
 Fedora) sudo dnf upgrade -y && sudo dnf install zsh stow -y
         ;;
 esac
