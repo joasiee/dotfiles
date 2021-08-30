@@ -4,11 +4,11 @@ cd $HOME
 OS=$NAME
 
 case "$OS" in
-Ubuntu) sudo apt update && sudo apt upgrade -y && sudo apt install zsh stow -y
+Ubuntu) sudo apt update && sudo apt upgrade -y && sudo apt install git zsh stow curl -y
         ;;
-Debian) sudo apt update && sudo apt upgrade -y && sudo apt install zsh stow -y
+Debian GNU/Linux) sudo apt update && sudo apt upgrade -y && sudo apt git zsh stow curl -y
 ;;
-Fedora) sudo dnf upgrade -y && sudo dnf install zsh stow -y
+Fedora) sudo dnf upgrade -y && sudo dnf install git zsh stow curl -y
         ;;
 esac
 
