@@ -1,14 +1,14 @@
 cd $HOME
 
 . /etc/os-release
-OS=$NAME
+OS=$ID
 
 case "$OS" in
-Ubuntu) sudo apt update && sudo apt upgrade -y && sudo apt install git zsh stow curl -y
+ubuntu) sudo apt update && sudo apt upgrade -y && sudo apt install git zsh stow curl -y
         ;;
-Debian GNU/Linux) sudo apt update && sudo apt upgrade -y && sudo apt git zsh stow curl -y
-;;
-Fedora) sudo dnf upgrade -y && sudo dnf install git zsh stow curl -y
+debian) sudo apt update && sudo apt upgrade -y && sudo apt git zsh stow curl -y
+        ;;
+fedora) sudo dnf upgrade -y && sudo dnf install git zsh stow curl -y
         ;;
 esac
 
