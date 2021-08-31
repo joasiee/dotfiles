@@ -9,4 +9,4 @@ cd Python-$VERSION
 make -j 2
 sudo make altinstall
 cd ..
-rm --dir -f -R Python-$VERSION
+sudo rm --dir -f -R Python-$VERSION
