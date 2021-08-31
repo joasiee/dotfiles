@@ -10,3 +10,4 @@ make -j 2
 sudo make altinstall
 cd ..
 sudo rm --dir -f -R Python-$VERSION
+echo "alias python=python$VERSION[0,3]" >> ~/.zshrc
