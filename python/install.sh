@@ -17,4 +17,4 @@ source ~/.zshrc
 python -m pip install --user pipx
 python -m pipx ensurepath
 
-pipx install poetry
+pipx install pdm
