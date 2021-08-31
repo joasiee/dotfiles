@@ -11,4 +11,4 @@ sudo make altinstall
 cd ..
 sudo rm --dir -f -R Python-$VERSION
 echo "alias python=python$VERSION[0,3]" >> ~/.zshrc
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python$VERSION[0,3] -
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -
