@@ -12,6 +12,8 @@ cd ..
 sudo rm --dir -f -R Python-$VERSION
 echo "alias python=python$VERSION[0,3]" >> ~/.zshrc
 echo "alias python3=python$VERSION[0,3]" >> ~/.zshrc
+source ~/.zshrc
+
 curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
