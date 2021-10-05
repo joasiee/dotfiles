@@ -4,11 +4,11 @@ cd $HOME
 OS=$ID
 
 case "$OS" in
-ubuntu) sudo apt update && sudo apt install git zsh stow curl -y
+ubuntu) sudo apt update && sudo apt install git zsh stow curl keychain -y
         ;;
-debian) sudo apt update && sudo apt install git zsh stow curl -y
+debian) sudo apt update && sudo apt install git zsh stow curl keychain -y
         ;;
-fedora) sudo dnf upgrade -y && sudo dnf install git zsh stow curl -y
+fedora) sudo dnf upgrade -y && sudo dnf install git zsh stow curl keychain -y
         ;;
 esac
 

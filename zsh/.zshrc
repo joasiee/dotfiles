@@ -7,7 +7,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 
 export PATH="/home/joasiee/.local/bin:$PATH"
 
-plugins=(git z ssh-agent)
+plugins=(git z)
 
 source $ZSH/oh-my-zsh.sh
 
