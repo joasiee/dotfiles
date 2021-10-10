@@ -12,9 +12,10 @@ cd ..
 sudo rm --dir -f -R Python-$VERSION
 sudo rm Python-$VERSION.tgz
 
-echo "alias python=python${VERSION[0,3]}" >> ~/.zshrc
-echo "alias python3=python${VERSION[0,3]}" >> ~/.zshrc
-echo "alias pdmi = eval "$(pdm --pep582)"" >> ~/.zshrc
+echo "alias python=python${VERSION[0,3]}" >> ~/.zshenv
+echo "alias python3=python${VERSION[0,3]}" >> ~/.zshenv
+echo "alias pdmi = eval "$(pdm --pep582)"" >> ~/.zshenv
+echo "python${VERSION[0,3]}" >> ~/.zshenv
 
 /usr/local/bin/python3.9 -m pip install --user pipx
 /usr/local/bin/python3.9 -m pipx ensurepath
