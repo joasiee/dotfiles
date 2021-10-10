@@ -6,15 +6,16 @@ wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tgz
 tar -xf Python-$VERSION.tgz
 cd Python-$VERSION
 ./configure --enable-optimizations
-make -j 2
+make -j 4
 sudo make altinstall
 cd ..
 sudo rm --dir -f -R Python-$VERSION
-echo "alias python=python$VERSION[0,3]" >> ~/.zshrc
-echo "alias python3=python$VERSION[0,3]" >> ~/.zshrc
-source ~/.zshrc
+sudo rm Python-$VERSION.tgz
 
-python -m pip install --user pipx
-python -m pipx ensurepath
+echo "alias python=python${VERSION[0,3]}" >> ~/.zshrc
+echo "alias python3=python${VERSION[0,3]}" >> ~/.zshrc
+
+/usr/local/bin/python3.9 -m pip install --user pipx
+/usr/local/bin/python3.9 -m pipx ensurepath
 
 pipx install pdm
