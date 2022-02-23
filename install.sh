@@ -12,7 +12,7 @@ fi
 
 if command -v pacman &> /dev/null
 then
-    sudo pacman -Syu --noconfirm git zsh stow curl keychain -y
+    sudo pacman -Syu --noconfirm which git zsh stow curl keychain -y
 fi
 
 git clone https://github.com/joasiee/dotfiles.git
