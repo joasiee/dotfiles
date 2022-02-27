@@ -12,7 +12,7 @@ fi
 
 if command -v pacman &> /dev/null
 then
-    sudo pacman -Syu --noconfirm git zsh stow curl keychain python-pip -y
+    sudo pacman -Syu --noconfirm git zsh stow curl keychain python-pip which -y
 fi
 
 git clone https://github.com/joasiee/dotfiles.git
