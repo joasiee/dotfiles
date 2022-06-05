@@ -7,8 +7,9 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 
 export PATH="/home/joasiee/.local/bin:$PATH"
 
-plugins=(git z)
+plugins=(git z poetry)
 
 source $ZSH/oh-my-zsh.sh
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+eval "$(pyenv init -)"
