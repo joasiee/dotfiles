@@ -28,5 +28,8 @@ pipx install poetry
 curl https://pyenv.run | bash
 
 cd dotfiles
+
 stow zsh
+stow .local
+
 exec $SHELL
