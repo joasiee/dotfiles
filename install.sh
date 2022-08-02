@@ -32,4 +32,7 @@ cd dotfiles
 stow zsh
 stow .local
 
+git config --global user.email "joasmulder@hotmail.com"
+git config --global user.name "Joas Mulder"
+
 exec $SHELL
