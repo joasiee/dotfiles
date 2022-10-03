@@ -2,7 +2,7 @@ cd $HOME
 
 if command -v apt &> /dev/null
 then
-    sudo apt update && sudo apt install git zsh stow curl python3-pip -y
+    sudo apt update && sudo apt install git zsh stow curl python3-pip python3-venv -y
 elif command -v dnf &> /dev/null
 then
     sudo dnf upgrade -y && sudo dnf install git zsh stow curl python3-pip -y
