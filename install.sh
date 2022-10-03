@@ -2,17 +2,13 @@ cd $HOME
 
 if command -v apt &> /dev/null
 then
-    sudo apt update && sudo apt install git zsh stow curl keychain python3-pip -y
-fi
-
-if command -v dnf &> /dev/null
+    sudo apt update && sudo apt install git zsh stow curl python3-pip -y
+elif command -v dnf &> /dev/null
 then
     sudo dnf upgrade -y && sudo dnf install git zsh stow curl python3-pip -y
-fi
-
-if command -v pacman &> /dev/null
+elif command -v pacman &> /dev/null
 then
-    sudo pacman -Syu --noconfirm git zsh stow curl keychain python-pip which -y
+    sudo pacman -Syu --noconfirm git zsh stow curl python-pip which -y
 fi
 
 git clone https://github.com/joasiee/dotfiles.git
