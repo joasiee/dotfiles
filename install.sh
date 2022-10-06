@@ -8,7 +8,7 @@ then
     sudo dnf upgrade -y && sudo dnf install git zsh stow curl python3-pip -y
 elif command -v zypper &> /dev/null
 then
-    sudo zypper up -y && sudo zypper install git zsh stow curl python3-pip -y
+    sudo zypper -n up && sudo zypper -n install git zsh stow curl python3-pip
 elif command -v pacman &> /dev/null
 then
     sudo pacman -Syu --noconfirm git zsh stow curl python-pip which -y
