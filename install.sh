@@ -28,8 +28,8 @@ python3 -m pipx ensurepath
 pipx install poetry
 curl https://pyenv.run | bash
 
-cd dotfiles
 rm .zshrc
+cd dotfiles
 stow zsh
 
 git config --global user.email "joasmulder@hotmail.com"
