@@ -19,7 +19,6 @@ git clone https://github.com/joasiee/dotfiles.git
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 git clone https://github.com/agkozak/zsh-z ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-z
 chsh -s $(which zsh)
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
 rm .zshrc
 
 python3 -m pip install --user pipx
@@ -30,7 +29,6 @@ curl https://pyenv.run | bash
 cd dotfiles
 
 stow zsh
-stow .local
 
 git config --global user.email "joasmulder@hotmail.com"
 git config --global user.name "Joas Mulder"
