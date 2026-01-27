@@ -10,6 +10,17 @@ Copy/paste to install:
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/joasiee/dotfiles/main/install.sh)"
 ```
 
+## Uninstall
+
+```sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/joasiee/dotfiles/main/uninstall.sh)"
+```
+
+This removes:
+- Symlinks created by the installer (and restores latest backups)
+- `~/.fzf`
+- `~/.dotfiles` only if it matches this repo
+
 ## What it does
 
 - Symlinks `zsh/.zshrc` to `~/.zshrc`
