@@ -2,6 +2,7 @@
 set -eu
 
 REPO_URL="https://github.com/joasiee/dotfiles.git"
+FZF_REPO_URL="https://github.com/junegunn/fzf.git"
 DEFAULT_DIR="$HOME/.dotfiles"
 
 DOTFILES_DIR=$(cd "$(dirname "$0")" && pwd 2>/dev/null || printf "%s" "$DEFAULT_DIR")
@@ -18,7 +19,7 @@ install_deps_ubuntu() {
   fi
 
   $SUDO apt-get update
-  $SUDO apt-get install -y zsh fzf curl git
+  $SUDO apt-get install -y zsh curl git
 
   # Prefer official starship installer on Linux
   if ! command -v starship >/dev/null 2>&1; then
@@ -76,9 +77,53 @@ link_file() {
   ln -s "$src" "$dest"
 }
 
+fzf_version() {
+  fzf --version 2>/dev/null | awk '{print $1}'
+}
+
+version_ge() {
+  [ "$1" = "$2" ] && return 0
+  printf '%s\n%s\n' "$2" "$1" | sort -V | head -n 1 | grep -qx "$2"
+}
+
+install_fzf_latest() {
+  if [ -d "$HOME/.fzf/.git" ]; then
+    git -C "$HOME/.fzf" pull --ff-only
+  else
+    git clone --depth 1 "$FZF_REPO_URL" "$HOME/.fzf"
+  fi
+
+  "$HOME/.fzf/install" --bin --no-update-rc --no-bash --no-fish --key-bindings --completion
+}
+
+ensure_fzf() {
+  if command -v fzf >/dev/null 2>&1; then
+    if version_ge "$(fzf_version)" "0.48.0"; then
+      return 0
+    fi
+  fi
+
+  if ! command -v git >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+    if ! install_deps_ubuntu; then
+      echo "Error: git and curl are required to install fzf."
+      return 1
+    fi
+  fi
+
+  install_fzf_latest
+}
+
 ensure_repo
 
+ensure_fzf || true
+
+if [ -d "$HOME/.fzf/bin" ]; then
+  PATH="$HOME/.fzf/bin:$PATH"
+  export PATH
+fi
+
 link_file "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
+link_file "$DOTFILES_DIR/zsh/.zshenv" "$HOME/.zshenv"
 link_file "$DOTFILES_DIR/zsh/.config/starship.toml" "$HOME/.config/starship.toml"
 
 echo "Linked Zsh dotfiles."
