@@ -3,6 +3,8 @@ export HISTSIZE=1000000000
 export SAVEHIST=$HISTSIZE
 setopt EXTENDED_HISTORY HIST_IGNORE_DUPS
 
+PROMPT='%m %~ %# '
+
 # --- Up/Down = substring history search ------------------------------------
 autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
 zle -N up-line-or-beginning-search
