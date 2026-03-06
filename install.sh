@@ -21,9 +21,8 @@ install_deps_ubuntu() {
   $SUDO apt-get update
   $SUDO apt-get install -y zsh curl git
 
-  # Prefer official starship installer on Linux
-  if ! command -v starship >/dev/null 2>&1; then
-    curl -fsSL https://starship.rs/install.sh | sh -s -- -y
+  if ! command -v zoxide >/dev/null 2>&1; then
+    curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
   fi
 }
 
@@ -124,7 +123,6 @@ fi
 
 link_file "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
 link_file "$DOTFILES_DIR/zsh/.zshenv" "$HOME/.zshenv"
-link_file "$DOTFILES_DIR/zsh/.config/starship.toml" "$HOME/.config/starship.toml"
 
 echo "Linked Zsh dotfiles."
 
@@ -132,11 +130,11 @@ missing=""
 if ! command -v zsh >/dev/null 2>&1; then
   missing="${missing} zsh"
 fi
-if ! command -v starship >/dev/null 2>&1; then
-  missing="${missing} starship"
-fi
 if ! command -v fzf >/dev/null 2>&1; then
   missing="${missing} fzf"
+fi
+if ! command -v zoxide >/dev/null 2>&1; then
+  missing="${missing} zoxide"
 fi
 
 if [ -n "$missing" ]; then
@@ -146,7 +144,9 @@ if [ -n "$missing" ]; then
   if install_deps_ubuntu; then
     echo "Installed dependencies (Ubuntu)."
   else
-    echo "Ubuntu install not available. Install the missing tools manually."
+    echo "Ubuntu install not available. Install the missing tools manually:"
+    echo "  zoxide: curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh"
+    echo "  fzf:    https://github.com/junegunn/fzf#installation"
   fi
 fi
 

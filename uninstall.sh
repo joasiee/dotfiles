@@ -30,7 +30,6 @@ unlink_if_ours() {
 
 unlink_if_ours "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
 unlink_if_ours "$DOTFILES_DIR/zsh/.zshenv" "$HOME/.zshenv"
-unlink_if_ours "$DOTFILES_DIR/zsh/.config/starship.toml" "$HOME/.config/starship.toml"
 
 if [ -d "$HOME/.fzf" ]; then
   rm -rf "$HOME/.fzf"

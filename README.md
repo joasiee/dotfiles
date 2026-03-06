@@ -26,30 +26,30 @@ This removes:
 ### What it does
 
 - Symlinks `zsh/.zshrc` to `~/.zshrc`
-- Symlinks `zsh/.config/starship.toml` to `~/.config/starship.toml`
-- Installs missing dependencies on Ubuntu (via `apt-get` + Starship installer)
 - Installs or upgrades `fzf` from the official git repo if it's missing or older
 - Prints a warning if dependencies are missing and Ubuntu install isn't available
 
 ### Layout
 
 - `zsh/.zshrc`
-- `zsh/.config/starship.toml`
 - `install.sh`
 
 ### Dependencies
 
 - `zsh`
-- `starship`
 - `fzf`
+- `zoxide`
 
 Set your login shell to zsh after installing dependencies.
 
-### fzf shortcuts
+### Key bindings
 
-- `Ctrl+R` history search
-- `Ctrl+T` file search
-- `Alt+C` change directory
+- `Ctrl+R` fzf history search (cross-session)
+- `Ctrl+T` fuzzy file picker (`fd` if available, else `find`)
+- `Ctrl+F` fuzzy directory picker
+- `Alt+J` zoxide interactive jump (`zi`)
+- `Alt+G` fuzzy git branch checkout
+- `Up/Down` substring history search
 
 ---
 
