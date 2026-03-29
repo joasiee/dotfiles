@@ -13,3 +13,11 @@ if [ -d "$HOME/.local/bin" ]; then
     *) export PATH="$HOME/.local/bin:$PATH" ;;
   esac
 fi
+
+# Ensure npm global bin is on PATH
+if [ -d "$HOME/.npm-global/bin" ]; then
+  case ":$PATH:" in
+    *":$HOME/.npm-global/bin:"*) ;;
+    *) export PATH="$HOME/.npm-global/bin:$PATH" ;;
+  esac
+fi

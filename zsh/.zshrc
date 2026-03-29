@@ -2,8 +2,21 @@ export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=1000000000
 export SAVEHIST=$HISTSIZE
 setopt EXTENDED_HISTORY HIST_IGNORE_DUPS
+setopt PROMPT_SUBST
 
-PROMPT='%m %~ %# '
+prompt_git_info() {
+  local repo_root repo_name branch
+
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || return
+  repo_name=${repo_root:t}
+  repo_name=${repo_name#.}
+  branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || \
+    branch=$(git rev-parse --short HEAD 2>/dev/null) || return
+
+  print -r -- " [$repo_name:$branch]"
+}
+
+PROMPT='%n %~$(prompt_git_info) %# '
 
 # --- Up/Down = substring history search ------------------------------------
 autoload -Uz up-line-or-beginning-search down-line-or-beginning-search

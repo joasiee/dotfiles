@@ -3,6 +3,7 @@ set -eu
 
 REPO_URL="https://github.com/joasiee/dotfiles.git"
 FZF_REPO_URL="https://github.com/junegunn/fzf.git"
+TPM_REPO_URL="https://github.com/tmux-plugins/tpm"
 DEFAULT_DIR="$HOME/.dotfiles"
 
 DOTFILES_DIR=$(cd "$(dirname "$0")" && pwd 2>/dev/null || printf "%s" "$DEFAULT_DIR")
@@ -19,7 +20,7 @@ install_deps_ubuntu() {
   fi
 
   $SUDO apt-get update
-  $SUDO apt-get install -y zsh curl git
+  $SUDO apt-get install -y zsh curl git tmux
 
   if ! command -v zoxide >/dev/null 2>&1; then
     curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
@@ -112,9 +113,49 @@ ensure_fzf() {
   install_fzf_latest
 }
 
+ensure_tmux() {
+  if command -v tmux >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if install_deps_ubuntu; then
+    command -v tmux >/dev/null 2>&1
+    return
+  fi
+
+  return 1
+}
+
+ensure_tpm() {
+  if ! command -v git >/dev/null 2>&1; then
+    return 1
+  fi
+
+  if [ -d "$HOME/.tmux/plugins/tpm/.git" ]; then
+    git -C "$HOME/.tmux/plugins/tpm" pull --ff-only
+  else
+    mkdir -p "$HOME/.tmux/plugins"
+    git clone --depth 1 "$TPM_REPO_URL" "$HOME/.tmux/plugins/tpm"
+  fi
+}
+
+ensure_tmux_plugins() {
+  if ! command -v tmux >/dev/null 2>&1; then
+    return 1
+  fi
+
+  if [ ! -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]; then
+    return 1
+  fi
+
+  tmux start-server \; source-file "$HOME/.tmux.conf"
+  "$HOME/.tmux/plugins/tpm/bin/install_plugins"
+}
+
 ensure_repo
 
 ensure_fzf || true
+ensure_tmux || true
 
 if [ -d "$HOME/.fzf/bin" ]; then
   PATH="$HOME/.fzf/bin:$PATH"
@@ -123,8 +164,12 @@ fi
 
 link_file "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
 link_file "$DOTFILES_DIR/zsh/.zshenv" "$HOME/.zshenv"
+link_file "$DOTFILES_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
 
-echo "Linked Zsh dotfiles."
+ensure_tpm || true
+ensure_tmux_plugins || true
+
+echo "Linked Zsh and tmux dotfiles."
 
 missing=""
 if ! command -v zsh >/dev/null 2>&1; then
@@ -135,6 +180,9 @@ if ! command -v fzf >/dev/null 2>&1; then
 fi
 if ! command -v zoxide >/dev/null 2>&1; then
   missing="${missing} zoxide"
+fi
+if ! command -v tmux >/dev/null 2>&1; then
+  missing="${missing} tmux"
 fi
 
 if [ -n "$missing" ]; then
@@ -147,6 +195,7 @@ if [ -n "$missing" ]; then
     echo "Ubuntu install not available. Install the missing tools manually:"
     echo "  zoxide: curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh"
     echo "  fzf:    https://github.com/junegunn/fzf#installation"
+    echo "  tmux:   https://github.com/tmux/tmux/wiki/Installing"
   fi
 fi
 

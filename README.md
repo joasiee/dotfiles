@@ -21,17 +21,22 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/joasiee/dotfiles/main/unin
 This removes:
 - Symlinks created by the installer (and restores latest backups)
 - `~/.fzf`
+- `~/.tmux/plugins/tpm` and `~/.tmux/plugins/tmux-sensible` if installed from the official repo
 - `~/.dotfiles` only if it matches this repo
 
 ### What it does
 
 - Symlinks `zsh/.zshrc` to `~/.zshrc`
+- Symlinks `tmux/.tmux.conf` to `~/.tmux.conf`
 - Installs or upgrades `fzf` from the official git repo if it's missing or older
+- Installs `tmux` on Ubuntu when available
+- Installs TPM and the `tmux-sensible` plugin
 - Prints a warning if dependencies are missing and Ubuntu install isn't available
 
 ### Layout
 
 - `zsh/.zshrc`
+- `tmux/.tmux.conf`
 - `install.sh`
 
 ### Dependencies
@@ -39,6 +44,7 @@ This removes:
 - `zsh`
 - `fzf`
 - `zoxide`
+- `tmux`
 
 Set your login shell to zsh after installing dependencies.
 
