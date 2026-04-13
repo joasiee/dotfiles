@@ -149,9 +149,18 @@ function Get-GitStatus { git status }
 function Switch-GitPreviousBranch { git checkout - }
 
 # ---- Dependencies ----
-Import-Module PSReadLine
 $env:_ZO_EXCLUDE_DIRS = "\\*"
-Invoke-Expression (& { (zoxide init powershell | Out-String) })
+
+# Cache zoxide init to avoid spawning an external process on every session.
+# Regenerates automatically when the zoxide binary is updated.
+$_zCache = "$env:TEMP\zoxide_ps_init.ps1"
+$_zExe   = (Get-Command zoxide -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -ErrorAction SilentlyContinue)
+if ($_zExe -and (-not (Test-Path $_zCache) -or
+        (Get-Item $_zExe).LastWriteTime -gt (Get-Item $_zCache).LastWriteTime)) {
+    zoxide init powershell | Set-Content $_zCache -Encoding UTF8
+}
+if (Test-Path $_zCache) { . $_zCache }
+Remove-Variable _zCache, _zExe -ErrorAction SilentlyContinue
 
 # Good defaults
 Set-PSReadLineOption -PredictionSource History
@@ -204,8 +213,8 @@ Set-PSReadLineKeyHandler -Key Alt+j -ScriptBlock {
 # 3) Ctrl+T = fuzzy file picker (best: prefer fd if available, fallback to Get-ChildItem)
 Set-PSReadLineKeyHandler -Key Ctrl+t -ScriptBlock {
     try {
-        $hasFd = (Get-Command fd -ErrorAction SilentlyContinue) -ne $null
-        if ($hasFd) {
+        if ($null -eq $global:_hasFd) { $global:_hasFd = $null -ne (Get-Command fd -ErrorAction SilentlyContinue) }
+        if ($global:_hasFd) {
             $picked = & fd --type f --hidden --follow --exclude .git 2>$null | fzf
         } else {
             $picked = Get-ChildItem -File -Recurse -Force -ErrorAction SilentlyContinue |
@@ -227,8 +236,8 @@ Set-PSReadLineKeyHandler -Key Ctrl+t -ScriptBlock {
 # Great for jumping around inside a big repo without relying on zoxide scoring.
 Set-PSReadLineKeyHandler -Key Ctrl+f -ScriptBlock {
     try {
-        $hasFd = (Get-Command fd -ErrorAction SilentlyContinue) -ne $null
-        if ($hasFd) {
+        if ($null -eq $global:_hasFd) { $global:_hasFd = $null -ne (Get-Command fd -ErrorAction SilentlyContinue) }
+        if ($global:_hasFd) {
             $picked = & fd --type d --hidden --follow --exclude .git 2>$null | fzf
         } else {
             $picked = Get-ChildItem -Directory -Recurse -Force -ErrorAction SilentlyContinue |
