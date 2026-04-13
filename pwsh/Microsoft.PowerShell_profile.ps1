@@ -1,45 +1,37 @@
 # --- Core Helpers -----------------------------------------------------------
 
 function Open-Solution {
-    param(
-        [Parameter(Mandatory = $true)][string]$MainPath,
-        [Parameter(Mandatory = $true)][string]$DefaultPath
-    )
-    if (Test-Path $MainPath) { Start-Process $MainPath }
-    elseif (Test-Path $DefaultPath) { Start-Process $DefaultPath }
-    else { Write-Error "Solution not found at either path: $MainPath or $DefaultPath" }
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+    $root = git rev-parse --show-toplevel
+    $path = Join-Path $root $RelativePath
+    if (Test-Path $path) { Start-Process $path }
+    else { Write-Error "Solution not found: $path" }
 }
 
 function Open-Folder {
-    param(
-        [Parameter(Mandatory = $true)][string]$MainPath,
-        [Parameter(Mandatory = $true)][string]$DefaultPath
-    )
-    if (Test-Path $MainPath) { code $MainPath }
-    elseif (Test-Path $DefaultPath) { code $DefaultPath }
-    else { Write-Error "Folder not found at either path: $MainPath or $DefaultPath" }
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+    $root = git rev-parse --show-toplevel
+    $path = Join-Path $root $RelativePath
+    if (Test-Path $path) { code $path }
+    else { Write-Error "Folder not found: $path" }
 }
 
 function Start-NpmProject {
-    param(
-        [Parameter(Mandatory = $true)][string]$MainPath,
-        [Parameter(Mandatory = $true)][string]$DefaultPath
-    )
-    if (Test-Path $MainPath) { Set-Location $MainPath }
-    elseif (Test-Path $DefaultPath) { Set-Location $DefaultPath }
-    else { Write-Error "Folder not found: $MainPath or $DefaultPath"; return }
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+    $root = git rev-parse --show-toplevel
+    $path = Join-Path $root $RelativePath
+    if (-not (Test-Path $path)) { Write-Error "Folder not found: $path"; return }
+    Set-Location $path
     npm install
     npm start
 }
 
 function Start-BunProject {
-    param(
-        [Parameter(Mandatory = $true)][string]$MainPath,
-        [Parameter(Mandatory = $true)][string]$DefaultPath
-    )
-    if (Test-Path $MainPath) { Set-Location $MainPath }
-    elseif (Test-Path $DefaultPath) { Set-Location $DefaultPath }
-    else { Write-Error "Folder not found: $MainPath or $DefaultPath"; return }
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+    $root = git rev-parse --show-toplevel
+    $path = Join-Path $root $RelativePath
+    if (-not (Test-Path $path)) { Write-Error "Folder not found: $path"; return }
+    Set-Location $path
     bun install
     bun start
 }
@@ -48,42 +40,50 @@ function Start-BunProject {
 
 # .NET Solutions
 function Open-ZenzAirSolution {
-    Open-Solution -MainPath ".\Main\ZenzAir\ZenzAir\ZenzAir.sln" -DefaultPath ".\ZenzAir\ZenzAir\ZenzAir.sln"
+    Open-Solution "ZenzAir/ZenzAir/ZenzAir.sln"
 }
 
 function Open-ZenzAirProcessorSolution {
-    Open-Solution -MainPath ".\Main\ZenzAir\ZenzAirProcessor\ZenzAirProcessor.sln" -DefaultPath ".\ZenzAir\ZenzAirProcessor\ZenzAirProcessor.sln"
+    Open-Solution "ZenzAir/ZenzAirProcessor/ZenzAirProcessor.sln"
 }
 
 # Web - New (ZenzAirWeb - Bun)
-function Open-ZenzWeb-New { Open-Folder -MainPath ".\Main\ZenzAirWeb" -DefaultPath ".\ZenzAirWeb" }
-function Start-ZenzWeb-New { Start-BunProject -MainPath ".\Main\ZenzAirWeb" -DefaultPath ".\ZenzAirWeb" }
+function Open-ZenzWeb-New { Open-Folder "ZenzAirWeb" }
+function Start-ZenzWeb-New { Start-BunProject "ZenzAirWeb" }
 
 # Web - Legacy (ZenzWeb - NPM)
-function Open-ZenzWeb-Legacy { Open-Folder -MainPath ".\Main\ZenzWeb\zenz_web" -DefaultPath ".\ZenzWeb\zenz_web" }
-function Start-ZenzWeb-Legacy { Start-NpmProject -MainPath ".\Main\ZenzWeb\zenz_web" -DefaultPath ".\ZenzWeb\zenz_web" }
+function Open-ZenzWeb-Legacy { Open-Folder "ZenzWeb/zenz_web" }
+function Start-ZenzWeb-Legacy { Start-NpmProject "ZenzWeb/zenz_web" }
 
 # --- Git & System Utilities -------------------------------------------------
 
 function Add-GitWorktree {
-    param([Parameter(Mandatory = $true)][string]$BranchName)
-    $curdirname = Split-Path -Path (Get-Location) -Leaf
-    git worktree add -b $BranchName "../$BranchName/$curdirname" && z "../$BranchName/$curdirname"
+    param(
+        [Parameter(Mandatory = $true)][string]$BranchName,
+        [Parameter(Mandatory = $true)][string]$Version,
+        [switch]$Main
+    )
+    if ($Main) { $BranchName = "$BranchName/Main" }
+    $baseBranch = "origin/PRD/Release_$Version"
+    $worktreePath = "Z:/dev/" + $BranchName.ToLower()
+    git worktree add -b $BranchName $worktreePath $baseBranch
+    if ($LASTEXITCODE -eq 0) { z $worktreePath }
 }
 
 function Add-GitWorktreeExisting {
-    param([Parameter(Mandatory = $true)][string]$BranchName)
-    $curdirname = Split-Path -Path (Get-Location) -Leaf
-    git worktree add "../$BranchName/$curdirname" $BranchName && z "../$BranchName/$curdirname"
-}
-
-function zg {
-    param([Parameter(Position = 0)][string]$SubCommand)
-    switch ($SubCommand) {
-        "amend" { git commit --amend --no-edit }
-        default { Write-Host "Unknown subcommand: $SubCommand" }
+    param(
+        [Parameter(Mandatory = $true)][string]$BranchName,
+        [switch]$Main
+    )
+    if ($Main) { $BranchName = "$BranchName/Main" }
+    $worktreePath = "Z:/dev/" + $BranchName.ToLower()
+    git worktree add $worktreePath $BranchName
+    if ($LASTEXITCODE -eq 0) {
+        git -C $worktreePath branch --set-upstream-to=origin/$BranchName $BranchName
+        z $worktreePath
     }
 }
+
 
 function Enable-MSVC {
     [CmdletBinding()] param([string]$Version, [string]$Arch = "x64")
@@ -91,7 +91,7 @@ function Enable-MSVC {
     if (-not $vsPath) { Write-Error "Visual Studio installation not found"; return $false }
     $vcvarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
     if (-not (Test-Path $vcvarsPath)) { Write-Error "vcvarsall.bat not found"; return $false }
-
+    
     Push-Location (Split-Path $vcvarsPath)
     $cmd = if ($Version) { "vcvarsall.bat $Arch -vcvars_ver=$Version" } else { "vcvarsall.bat $Arch" }
     cmd /c "$cmd & set" | ForEach-Object {
@@ -109,33 +109,15 @@ function vccode {
 
 function rmrf { rm -Recurse -Force $args }
 
+function Start-DevEnv { Start-Process devenv . }
+
 # --- Version Jumping & Navigation -------------------------------------------
 
-function Set-ZenzVersionDirectory {
-    param([Parameter(Mandatory = $true)][string]$Version)
-    $path = "Z:\$Version"
-    if (Test-Path $path) { Set-Location $path }
-    else { Write-Error "Directory not found: $path" }
-}
-
-function v {
-    param([Parameter(Mandatory=$true)][string]$Version)
-    if ($Version -notmatch '^v?\d{3,}$') { Write-Error "Use v###"; return }
-    $ver = if ($Version.StartsWith('v')) { $Version } else { 'v' + $Version }
-    Set-ZenzVersionDirectory -Version $ver
-}
-
-# Auto-generate v001, v002 commands
-if (Test-Path 'Z:\') {
-    Get-ChildItem -Path 'Z:\' -Directory -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -match '^v\d{3,}$' } |
-        ForEach-Object {
-            $ver = $_.Name
-            Set-Item -Path "Function:\$ver" -Value ([scriptblock]::Create("Set-ZenzVersionDirectory -Version '$ver'")) -Force
-        }
-}
 
 function Set-MainDirectory { Set-Location "Z:\zenz\main" }
+function Set-DevDirectory { Set-Location "Z:\dev" }
+function Set-Dev1Directory { z "Z:\dev\dev1" }
+function Set-Dev2Directory { z "Z:\dev\dev2" }
 
 # --- Aliases & Initialization -----------------------------------------------
 
@@ -152,12 +134,16 @@ Set-Alias zwx  Start-ZenzWeb-New    # New (Bun/ZenzAirWeb)
 Set-Alias zwxo Start-ZenzWeb-Legacy # Old (Npm/ZenzWeb)
 
 # Git & Nav
-Set-Alias gwa  Add-GitWorktree
-Set-Alias gwae Add-GitWorktreeExisting
+Set-Alias gwa   Add-GitWorktree
+Set-Alias gwae  Add-GitWorktreeExisting
 Set-Alias main Set-MainDirectory
+Set-Alias dev  Set-DevDirectory
+Set-Alias dev1 Set-Dev1Directory
+Set-Alias dev2 Set-Dev2Directory
 Set-Alias gs   Get-GitStatus
-Set-Alias gpb  Switch-GitPreviousBranch
+Set-Alias gpb  Switch-GitPreviousBranch # git checkout -
 Set-Alias grep Select-String
+Set-Alias dv   Start-DevEnv
 
 function Get-GitStatus { git status }
 function Switch-GitPreviousBranch { git checkout - }
@@ -185,12 +171,15 @@ function Invoke-FzfPick {
     return $picked
 }
 
-# 1) Ctrl+R = fzf history search (reads PSReadLine history file, works across sessions)
+# 1) Ctrl+R = fzf history search (BEST version: reads PSReadLine history file)
+# - Works across sessions
+# - Much bigger history than Get-History
 Set-PSReadLineKeyHandler -Key Ctrl+r -ScriptBlock {
     try {
         $histPath = (Get-PSReadLineOption).HistorySavePath
         if (-not (Test-Path $histPath)) { return }
 
+        # PSReadLine history file is newest-last, so use --tac to reverse
         $picked = Get-Content -Path $histPath -ErrorAction Stop |
             Where-Object { $_ -and $_.Trim() } |
             fzf --tac --no-sort
@@ -204,14 +193,15 @@ Set-PSReadLineKeyHandler -Key Ctrl+r -ScriptBlock {
     }
 }
 
-# 2) Alt+J = zoxide interactive jump
+# 2) Alt+J = zoxide interactive jump (most reliable)
+# Uses zoxide's own fzf integration and changes directory correctly.
 Set-PSReadLineKeyHandler -Key Alt+j -ScriptBlock {
     [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
     [Microsoft.PowerShell.PSConsoleReadLine]::Insert("zi")
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
 }
 
-# 3) Ctrl+T = fuzzy file picker (fd if available, fallback to Get-ChildItem)
+# 3) Ctrl+T = fuzzy file picker (best: prefer fd if available, fallback to Get-ChildItem)
 Set-PSReadLineKeyHandler -Key Ctrl+t -ScriptBlock {
     try {
         $hasFd = (Get-Command fd -ErrorAction SilentlyContinue) -ne $null
@@ -224,6 +214,7 @@ Set-PSReadLineKeyHandler -Key Ctrl+t -ScriptBlock {
         }
 
         if ($picked) {
+            # Quote path if it contains spaces
             $toInsert = if ($picked -match '\s') { '"' + $picked + '"' } else { $picked }
             [Microsoft.PowerShell.PSConsoleReadLine]::Insert($toInsert)
         }
@@ -233,6 +224,7 @@ Set-PSReadLineKeyHandler -Key Ctrl+t -ScriptBlock {
 }
 
 # 4) Ctrl+F = fuzzy directory picker (within current tree)
+# Great for jumping around inside a big repo without relying on zoxide scoring.
 Set-PSReadLineKeyHandler -Key Ctrl+f -ScriptBlock {
     try {
         $hasFd = (Get-Command fd -ErrorAction SilentlyContinue) -ne $null
@@ -257,6 +249,7 @@ Set-PSReadLineKeyHandler -Key Ctrl+f -ScriptBlock {
 # 5) Alt+G = fuzzy git branch checkout (local + remote, de-duped)
 Set-PSReadLineKeyHandler -Key Alt+g -ScriptBlock {
     try {
+        # Ensure we're in a git repo
         & git rev-parse --is-inside-work-tree *> $null
         if ($LASTEXITCODE -ne 0) { return }
 
@@ -267,7 +260,10 @@ Set-PSReadLineKeyHandler -Key Alt+g -ScriptBlock {
         $picked = $refs | fzf --prompt "git checkout> " --no-sort
         if (-not $picked) { return }
 
+        # If remote selected (e.g. origin/feature/x), checkout tracking branch nicely:
         if ($picked -match '^[^/]+/.+') {
+            $remote = $picked.Split('/')[0]
+            $branch = $picked.Substring($remote.Length + 1)
             [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
             [Microsoft.PowerShell.PSConsoleReadLine]::Insert("git checkout -t $picked")
             [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
@@ -281,9 +277,31 @@ Set-PSReadLineKeyHandler -Key Alt+g -ScriptBlock {
     }
 }
 
-# Up/Down = substring history search
+# Optional: Up/Down substring history search (pairs nicely with Ctrl+R=fzf)
+Set-PSReadLineOption -HistorySearchCursorMovesToEnd
 Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
 Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
 
-# Ctrl+L = clear screen
+# Optional: Ctrl+L clear screen
 Set-PSReadLineKeyHandler -Key Ctrl+l -Function ClearScreen
+
+# 6) Alt+W = fuzzy worktree switcher
+Set-PSReadLineKeyHandler -Key Alt+w -ScriptBlock {
+    try {
+        & git rev-parse --is-inside-work-tree *> $null
+        if ($LASTEXITCODE -ne 0) { return }
+
+        $worktrees = & git worktree list --porcelain |
+            Where-Object { $_ -match '^worktree ' } |
+            ForEach-Object { $_ -replace '^worktree ', '' }
+
+        $picked = $worktrees | fzf --prompt "worktree> "
+        if (-not $picked) { return }
+
+        [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+        Set-Location $picked
+        [Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
+    } catch {}
+}
+
+Write-Host "profile loaded" -ForegroundColor Green
