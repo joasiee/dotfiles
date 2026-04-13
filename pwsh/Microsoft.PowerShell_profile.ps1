@@ -166,6 +166,7 @@ Remove-Variable _zCache, _zExe -ErrorAction SilentlyContinue
 Set-PSReadLineOption -PredictionSource History
 Set-PSReadLineOption -PredictionViewStyle InlineView
 Set-PSReadLineOption -HistorySaveStyle SaveIncrementally
+Set-PSReadLineOption -HistoryNoDuplicates
 
 # Helper: pick one item with fzf, returning string or $null
 function Invoke-FzfPick {
