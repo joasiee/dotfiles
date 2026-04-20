@@ -109,6 +109,8 @@ function vccode {
 
 function rmrf { rm -Recurse -Force $args }
 
+function lsh { Get-ChildItem -Force @args }
+
 function Start-DevEnv { Start-Process devenv . }
 
 # --- Version Jumping & Navigation -------------------------------------------
@@ -147,6 +149,17 @@ Set-Alias dv   Start-DevEnv
 
 function Get-GitStatus { git status }
 function Switch-GitPreviousBranch { git checkout - }
+
+function prompt {
+  $loc = $executionContext.SessionState.Path.CurrentLocation;
+
+$out = ""
+  if ($loc.Provider.Name -eq "FileSystem") {
+    $out += "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]27)\"
+  }
+  $out += "PS $loc$('>' * ($nestedPromptLevel + 1)) ";
+  return $out
+}
 
 # ---- Dependencies ----
 $env:_ZO_EXCLUDE_DIRS = "\\*"
@@ -189,10 +202,14 @@ Set-PSReadLineKeyHandler -Key Ctrl+r -ScriptBlock {
         $histPath = (Get-PSReadLineOption).HistorySavePath
         if (-not (Test-Path $histPath)) { return }
 
-        # PSReadLine history file is newest-last, so use --tac to reverse
-        $picked = Get-Content -Path $histPath -ErrorAction Stop |
-            Where-Object { $_ -and $_.Trim() } |
-            fzf --tac --no-sort
+        # Deduplicate keeping most recent occurrence, then pipe newest-first to fzf
+        $lines = Get-Content -Path $histPath -ErrorAction Stop | Where-Object { $_ -and $_.Trim() }
+        $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+        $deduped = [System.Collections.Generic.List[string]]::new()
+        for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+            if ($seen.Add($lines[$i])) { $deduped.Add($lines[$i]) }
+        }
+        $picked = $deduped | fzf --no-sort --scheme=history
 
         if ($picked) {
             [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
