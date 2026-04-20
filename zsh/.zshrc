@@ -29,7 +29,7 @@ bindkey '^[[B' down-line-or-beginning-search
 if command -v fzf >/dev/null 2>&1; then
   _fzf_history_widget() {
     local selected
-    selected=$(fc -rl 1 | sed 's/^ *[0-9]* *//' | fzf --tac --no-sort)
+    selected=$(fc -ln 1 | tac | awk '!seen[$0]++' | fzf --no-sort --scheme=history)
     if [[ -n $selected ]]; then
       BUFFER=$selected
       CURSOR=${#BUFFER}
