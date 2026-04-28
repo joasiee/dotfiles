@@ -144,11 +144,16 @@ Set-Alias dev1 Set-Dev1Directory
 Set-Alias dev2 Set-Dev2Directory
 Set-Alias gs   Get-GitStatus
 Set-Alias gpb  Switch-GitPreviousBranch # git checkout -
+Set-Alias gm   Invoke-GitCommitAll      # git commit -a -m
 Set-Alias grep Select-String
 Set-Alias dv   Start-DevEnv
 
 function Get-GitStatus { git status }
 function Switch-GitPreviousBranch { git checkout - }
+function Invoke-GitCommitAll {
+    param([Parameter(Mandatory=$true, ValueFromRemainingArguments=$true)][string[]]$Message)
+    git commit -a -m ($Message -join ' ')
+}
 
 function prompt {
   $loc = $executionContext.SessionState.Path.CurrentLocation;
