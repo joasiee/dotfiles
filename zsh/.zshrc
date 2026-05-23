@@ -113,3 +113,4 @@ if command -v fzf >/dev/null 2>&1; then
   zle -N _fzf_git_branch_widget
   bindkey '^[g' _fzf_git_branch_widget
 fi
+eval "$(direnv hook zsh)"
