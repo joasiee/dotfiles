@@ -26,6 +26,14 @@ PROMPT='%F{green}%n%f %F{blue}%~%f$(prompt_git_info)$(prompt_nix_info) %# '
 
 eval "$(direnv hook zsh)"
 
+# --- Windows Terminal: emit OSC 9;9 so Duplicate Pane inherits cwd ---------
+if [[ -n "${WT_SESSION:-}" ]]; then
+  _wt_set_cwd() { printf '\e]9;9;%s\e\\' "$PWD" }
+  autoload -Uz add-zsh-hook
+  add-zsh-hook precmd _wt_set_cwd
+  _wt_set_cwd
+fi
+
 # --- Word Navigation (Ctrl+Left / Ctrl+Right) ---
 bindkey '^[[1;5C' forward-word
 bindkey '^[[1;5D' backward-word
