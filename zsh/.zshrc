@@ -1,6 +1,7 @@
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=1000000000
 export SAVEHIST=$HISTSIZE
+autoload -U colors && colors
 setopt EXTENDED_HISTORY HIST_IGNORE_DUPS
 setopt PROMPT_SUBST
 
@@ -13,10 +14,17 @@ prompt_git_info() {
   branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || \
     branch=$(git rev-parse --short HEAD 2>/dev/null) || return
 
-  print -r -- " [$repo_name:$branch]"
+  print -r -- " %F{cyan}[$repo_name:$branch]%f"
 }
 
-PROMPT='%n %~$(prompt_git_info) %# '
+prompt_nix_info() {
+  [[ -n "${IN_NIX_SHELL:-}" ]] || return
+  print -r -- " %F{magenta}[nix]%f"
+}
+
+PROMPT='%F{green}%n%f %F{blue}%~%f$(prompt_git_info)$(prompt_nix_info) %# '
+
+eval "$(direnv hook zsh)"
 
 # --- Word Navigation (Ctrl+Left / Ctrl+Right) ---
 bindkey '^[[1;5C' forward-word
