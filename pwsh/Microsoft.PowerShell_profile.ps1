@@ -294,18 +294,17 @@ Set-PSReadLineKeyHandler -Key Alt+g -ScriptBlock {
         $picked = $refs | fzf --prompt "git checkout> " --no-sort
         if (-not $picked) { return }
 
-        # If remote selected (e.g. origin/feature/x), checkout tracking branch nicely:
-        if ($picked -match '^[^/]+/.+') {
-            $remote = $picked.Split('/')[0]
-            $branch = $picked.Substring($remote.Length + 1)
-            [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-            [Microsoft.PowerShell.PSConsoleReadLine]::Insert("git checkout -t $picked")
-            [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
-        } else {
-            [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+        # Local branches can contain '/' (e.g. pbi/foo), so check the ref, not the slash.
+        & git show-ref --verify --quiet "refs/heads/$picked"
+        $isLocal = ($LASTEXITCODE -eq 0)
+
+        [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+        if ($isLocal) {
             [Microsoft.PowerShell.PSConsoleReadLine]::Insert("git checkout $picked")
-            [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+        } else {
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert("git checkout -t $picked")
         }
+        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
     } catch {
         # silently ignore
     }
