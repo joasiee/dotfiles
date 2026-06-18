@@ -120,6 +120,7 @@ function Set-MainDirectory { Set-Location "Z:\zenz\main" }
 function Set-DevDirectory { Set-Location "Z:\dev" }
 function Set-Dev1Directory { z "Z:\dev\dev1" }
 function Set-Dev2Directory { z "Z:\dev\dev2" }
+function Set-Dev3Directory { z "Z:\dev\dev3" }
 
 # --- Aliases & Initialization -----------------------------------------------
 
@@ -142,6 +143,7 @@ Set-Alias main Set-MainDirectory
 Set-Alias dev  Set-DevDirectory
 Set-Alias dev1 Set-Dev1Directory
 Set-Alias dev2 Set-Dev2Directory
+Set-Alias dev3 Set-Dev3Directory
 Set-Alias gs   Get-GitStatus
 Set-Alias gpb  Switch-GitPreviousBranch # git checkout -
 Set-Alias -Force gm Invoke-GitCommitAll  # git commit -a -m
