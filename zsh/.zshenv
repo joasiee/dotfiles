@@ -21,3 +21,6 @@ if [ -d "$HOME/.npm-global/bin" ]; then
     *) export PATH="$HOME/.npm-global/bin:$PATH" ;;
   esac
 fi
+
+export CMAKE_BUILD_PARALLEL_LEVEL=12
+export CMAKE_UNITY_BUILD_BATCH_SIZE=16
