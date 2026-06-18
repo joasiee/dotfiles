@@ -66,7 +66,7 @@ function Add-GitWorktree {
     if ($Main) { $BranchName = "$BranchName/Main" }
     $baseBranch = "origin/PRD/Release_$Version"
     $worktreePath = "Z:/dev/" + $BranchName.ToLower()
-    git worktree add -b $BranchName $worktreePath $baseBranch
+    git worktree add -b $BranchName --no-track $worktreePath $baseBranch
     if ($LASTEXITCODE -eq 0) { z $worktreePath }
 }
 
