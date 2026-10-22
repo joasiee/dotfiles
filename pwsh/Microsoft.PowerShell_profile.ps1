@@ -60,10 +60,8 @@ function Start-ZenzWeb-Legacy { Start-NpmProject "ZenzWeb/zenz_web" }
 function Add-GitWorktree {
     param(
         [Parameter(Mandatory = $true)][string]$BranchName,
-        [Parameter(Mandatory = $true)][string]$Version,
-        [switch]$Main
+        [Parameter(Mandatory = $true)][string]$Version
     )
-    if ($Main) { $BranchName = "$BranchName/Main" }
     $baseBranch = "origin/PRD/Release_$Version"
     $worktreePath = "Z:/dev/wt/" + ($BranchName.ToLower() -replace '/', '_')
     git worktree add -b $BranchName --no-track $worktreePath $baseBranch
@@ -72,10 +70,8 @@ function Add-GitWorktree {
 
 function Add-GitWorktreeExisting {
     param(
-        [Parameter(Mandatory = $true)][string]$BranchName,
-        [switch]$Main
+        [Parameter(Mandatory = $true)][string]$BranchName
     )
-    if ($Main) { $BranchName = "$BranchName/Main" }
     $worktreePath = "Z:/dev/wt/" + ($BranchName.ToLower() -replace '/', '_')
     git worktree add $worktreePath $BranchName
     if ($LASTEXITCODE -eq 0) {
