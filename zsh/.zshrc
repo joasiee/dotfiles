@@ -130,4 +130,14 @@ if command -v fzf >/dev/null 2>&1; then
   bindkey '^[g' _fzf_git_branch_widget
 fi
 
+# --- wt = open/create a ~/dev/wt worktree and start Claude (same script as Windows) ---
+wt() {
+  local cdfile dir
+  cdfile=$(mktemp)
+  WT_CD_FILE=$cdfile pwsh -NoProfile -File /mnt/z/dev/.claude/wt/Open-DevWorktree.ps1 "$@"
+  dir=$(<"$cdfile")
+  rm -f "$cdfile"
+  [[ -n $dir ]] && z "$dir"
+}
+
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
