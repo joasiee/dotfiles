@@ -65,7 +65,7 @@ function Add-GitWorktree {
     )
     if ($Main) { $BranchName = "$BranchName/Main" }
     $baseBranch = "origin/PRD/Release_$Version"
-    $worktreePath = "Z:/dev/" + $BranchName.ToLower()
+    $worktreePath = "Z:/dev/wt/" + ($BranchName.ToLower() -replace '/', '_')
     git worktree add -b $BranchName --no-track $worktreePath $baseBranch
     if ($LASTEXITCODE -eq 0) { z $worktreePath }
 }
@@ -76,7 +76,7 @@ function Add-GitWorktreeExisting {
         [switch]$Main
     )
     if ($Main) { $BranchName = "$BranchName/Main" }
-    $worktreePath = "Z:/dev/" + $BranchName.ToLower()
+    $worktreePath = "Z:/dev/wt/" + ($BranchName.ToLower() -replace '/', '_')
     git worktree add $worktreePath $BranchName
     if ($LASTEXITCODE -eq 0) {
         git -C $worktreePath branch --set-upstream-to=origin/$BranchName $BranchName
@@ -84,6 +84,8 @@ function Add-GitWorktreeExisting {
     }
 }
 
+
+function Open-DevWorktree { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" @args }
 
 function Enable-MSVC {
     [CmdletBinding()] param([string]$Version, [string]$Arch = "x64")
@@ -139,6 +141,7 @@ Set-Alias zwxo Start-ZenzWeb-Legacy # Old (Npm/ZenzWeb)
 # Git & Nav
 Set-Alias gwa   Add-GitWorktree
 Set-Alias gwae  Add-GitWorktreeExisting
+Set-Alias wt    Open-DevWorktree   # shadows Windows Terminal's wt; use wt.exe for that
 Set-Alias main Set-MainDirectory
 Set-Alias dev  Set-DevDirectory
 Set-Alias dev1 Set-Dev1Directory
@@ -157,14 +160,65 @@ function Invoke-GitCommitAll {
     git commit -a -m ($Message -join ' ')
 }
 
+# Git prompt segment, same layout as the Claude statusline: branch ↓behind ↑ahead ●files +added -deleted
+function Get-PromptGitSegment {
+    param([string]$Path)
+    $esc = [char]27
+    $reset = "$esc[0m"
+    $info = @(git -C $Path --no-optional-locks rev-parse --is-inside-work-tree --path-format=absolute --git-common-dir 2>$null)
+    if ($info.Count -lt 2 -or $info[0] -ne 'true') { return '' }
+
+    # Background fetch at most every 5 minutes per repository; the marker file is shared with the Claude statusline
+    $commonHash = [System.BitConverter]::ToString([System.Security.Cryptography.MD5]::HashData([System.Text.Encoding]::UTF8.GetBytes($info[1].ToLowerInvariant()))) -replace '-', ''
+    $fetchMarker = Join-Path ([System.IO.Path]::GetTempPath()) "claude-statusline-fetch-$commonHash"
+    $due = $true
+    try { $due = ((Get-Date) - (Get-Item -LiteralPath $fetchMarker -ErrorAction Stop).LastWriteTime).TotalSeconds -ge 300 } catch {}
+    if ($due) {
+        try {
+            [System.IO.File]::WriteAllText($fetchMarker, '')
+            Start-Process git -ArgumentList '-C', "`"$Path`"", 'fetch', '--quiet', '--no-auto-gc' -WindowStyle Hidden -Environment @{ GIT_TERMINAL_PROMPT = '0'; GCM_INTERACTIVE = 'never' }
+        } catch {}
+    }
+
+    $branch = ''; $oid = ''; $ahead = 0; $behind = 0; $files = 0
+    foreach ($line in (git -C $Path --no-optional-locks status --porcelain=v2 --branch 2>$null)) {
+        if ($line -match '^# branch\.head (.+)$') { $branch = $Matches[1] }
+        elseif ($line -match '^# branch\.oid (.+)$') { $oid = $Matches[1] }
+        elseif ($line -match '^# branch\.ab \+(\d+) -(\d+)$') { $ahead = [int]$Matches[1]; $behind = [int]$Matches[2] }
+        elseif ($line -notmatch '^#') { $files++ }
+    }
+    if ($branch -eq '(detached)') { $branch = $oid.Substring(0, [math]::Min(10, $oid.Length)) }
+    if (-not $branch) { return '' }
+
+    $cyan = "$esc[36m"
+    $out = "$cyan[$branch"
+    if ($behind -gt 0) { $out += " `u{2193}$behind" }
+    if ($ahead -gt 0) { $out += " `u{2191}$ahead" }
+    if ($files -gt 0) {
+        $out += " $esc[33m`u{25CF}$files"
+        $stat = git -C $Path --no-optional-locks diff HEAD --shortstat 2>$null
+        if ($stat -match '(\d+) insertion') { $out += " $esc[32m+$($Matches[1])" }
+        if ($stat -match '(\d+) deletion') { $out += " $esc[31m-$($Matches[1])" }
+    }
+    return "$out$cyan]$reset"
+}
+
 function prompt {
+  $lastExit = $global:LASTEXITCODE
   $loc = $executionContext.SessionState.Path.CurrentLocation;
 
 $out = ""
+  $git = ""
   if ($loc.Provider.Name -eq "FileSystem") {
     $out += "$([char]27)]9;9;`"$($loc.ProviderPath)`"$([char]27)\"
+    # Skip network shares so a slow UNC path never stalls the prompt
+    if (-not $loc.ProviderPath.StartsWith('\\')) {
+      try { $git = Get-PromptGitSegment $loc.ProviderPath } catch {}
+    }
   }
-  $out += "PS $loc$('>' * ($nestedPromptLevel + 1)) ";
+  if ($git) { $git += " " }
+  $out += "PS $git$loc$('>' * ($nestedPromptLevel + 1)) ";
+  $global:LASTEXITCODE = $lastExit
   return $out
 }
 
@@ -241,6 +295,28 @@ Set-PSReadLineKeyHandler -Key Ctrl+t -ScriptBlock {
         if ($null -eq $global:_hasFd) { $global:_hasFd = $null -ne (Get-Command fd -ErrorAction SilentlyContinue) }
         if ($global:_hasFd) {
             $picked = & fd --type f --hidden --follow --exclude .git 2>$null | fzf
+        } else {
+            $picked = Get-ChildItem -File -Recurse -Force -ErrorAction SilentlyContinue |
+                Select-Object -ExpandProperty FullName |
+                fzf
+        }
+
+        if ($picked) {
+            # Quote path if it contains spaces
+            $toInsert = if ($picked -match '\s') { '"' + $picked + '"' } else { $picked }
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert($toInsert)
+        }
+    } catch {
+        # silently ignore
+    }
+}
+
+# 3b) Alt+T = fuzzy file picker, unrestricted (ignores .gitignore — for build output, etc.)
+Set-PSReadLineKeyHandler -Key Alt+t -ScriptBlock {
+    try {
+        if ($null -eq $global:_hasFd) { $global:_hasFd = $null -ne (Get-Command fd -ErrorAction SilentlyContinue) }
+        if ($global:_hasFd) {
+            $picked = & fd --type f --hidden --follow --no-ignore --exclude .git 2>$null | fzf
         } else {
             $picked = Get-ChildItem -File -Recurse -Force -ErrorAction SilentlyContinue |
                 Select-Object -ExpandProperty FullName |
