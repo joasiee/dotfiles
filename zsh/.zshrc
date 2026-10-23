@@ -139,5 +139,6 @@ wt() {
   rm -f "$cdfile"
   [[ -n $dir ]] && z "$dir"
 }
+wti() { wt -i "$@"; }
 
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh

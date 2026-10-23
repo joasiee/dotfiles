@@ -82,6 +82,7 @@ function Add-GitWorktreeExisting {
 
 
 function Open-DevWorktree { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" @args }
+function wti { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" -i @args }
 
 function Enable-MSVC {
     [CmdletBinding()] param([string]$Version, [string]$Arch = "x64")
