@@ -82,7 +82,6 @@ function Add-GitWorktreeExisting {
 
 
 function Open-DevWorktree { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" @args }
-function wti { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" -i @args }
 
 function Enable-MSVC {
     [CmdletBinding()] param([string]$Version, [string]$Arch = "x64")
@@ -283,6 +282,13 @@ Set-PSReadLineKeyHandler -Key Ctrl+r -ScriptBlock {
 Set-PSReadLineKeyHandler -Key Alt+j -ScriptBlock {
     [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
     [Microsoft.PowerShell.PSConsoleReadLine]::Insert("zi")
+    [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+}
+
+# 2b) Alt+S = fuzzy pick a Claude session, cd to its folder and resume it
+Set-PSReadLineKeyHandler -Key Alt+s -ScriptBlock {
+    [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("wt -s")
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
 }
 
