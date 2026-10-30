@@ -83,6 +83,13 @@ function Add-GitWorktreeExisting {
 
 function Open-DevWorktree { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" @args }
 
+# Background auto-mode Claude in the orchestrator folder with a slim context: memory and policy CLAUDE.md only, no skills, tickr the only MCP
+function Start-OrchestratorClaude {
+    Push-Location "Z:\dev\.claude\orchestrator"
+    try { claude --bg --permission-mode auto -n orchestrator --settings settings.json --setting-sources user --mcp-config mcp.json --strict-mcp-config --disable-slash-commands @args }
+    finally { Pop-Location }
+}
+
 function Enable-MSVC {
     [CmdletBinding()] param([string]$Version, [string]$Arch = "x64")
     $vsPath = & vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
@@ -138,6 +145,7 @@ Set-Alias zwxo Start-ZenzWeb-Legacy # Old (Npm/ZenzWeb)
 Set-Alias gwa   Add-GitWorktree
 Set-Alias gwae  Add-GitWorktreeExisting
 Set-Alias wt    Open-DevWorktree   # shadows Windows Terminal's wt; use wt.exe for that
+Set-Alias so    Start-OrchestratorClaude
 Set-Alias main Set-MainDirectory
 Set-Alias dev  Set-DevDirectory
 Set-Alias dev1 Set-Dev1Directory
@@ -289,6 +297,13 @@ Set-PSReadLineKeyHandler -Key Alt+j -ScriptBlock {
 Set-PSReadLineKeyHandler -Key Alt+s -ScriptBlock {
     [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
     [Microsoft.PowerShell.PSConsoleReadLine]::Insert("wt -s")
+    [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+}
+
+# 2c) Alt+R = fuzzy pick a running background Claude session and move it into this terminal
+Set-PSReadLineKeyHandler -Key Alt+r -ScriptBlock {
+    [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("wt -r")
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
 }
 
