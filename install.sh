@@ -163,6 +163,8 @@ if [ -d "$HOME/.fzf/bin" ]; then
 fi
 
 link_file "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
+# .zshenv is gitignored (machine-local secrets), so start from an empty one on a fresh clone
+[ -e "$DOTFILES_DIR/zsh/.zshenv" ] || touch "$DOTFILES_DIR/zsh/.zshenv"
 link_file "$DOTFILES_DIR/zsh/.zshenv" "$HOME/.zshenv"
 link_file "$DOTFILES_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
 
