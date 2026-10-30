@@ -68,7 +68,7 @@ if command -v fzf >/dev/null 2>&1; then
   _fzf_file_widget() {
     local picked
     if command -v fd >/dev/null 2>&1; then
-      picked=$(fd --type f --hidden --follow --exclude .git 2>/dev/null | fzf)
+      picked=$(fd --type f --hidden --follow --no-ignore-vcs --exclude .git --exclude '*.o' --exclude '*.obj' --exclude '*.d' --exclude '*.cmake' 2>/dev/null | fzf)
     else
       picked=$(find . -type f 2>/dev/null | fzf)
     fi
@@ -118,10 +118,11 @@ if command -v fzf >/dev/null 2>&1; then
     picked=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes 2>/dev/null |
       grep -v '^origin/HEAD$' | sort -u | fzf --prompt 'git checkout> ' --no-sort)
     if [[ -z $picked ]]; then return; fi
-    if [[ $picked == */* ]]; then
-      BUFFER="git checkout -t $picked"
-    else
+    # Local branches can contain '/' (e.g. pbi/foo), so check the ref, not the slash
+    if git show-ref --verify --quiet "refs/heads/$picked"; then
       BUFFER="git checkout $picked"
+    else
+      BUFFER="git checkout -t $picked"
     fi
     CURSOR=${#BUFFER}
     zle accept-line
@@ -129,6 +130,47 @@ if command -v fzf >/dev/null 2>&1; then
   zle -N _fzf_git_branch_widget
   bindkey '^[g' _fzf_git_branch_widget
 fi
+
+# --- Alt+T = fuzzy file picker, unrestricted (ignores .gitignore) ----------
+if command -v fzf >/dev/null 2>&1; then
+  _fzf_file_all_widget() {
+    local picked
+    if command -v fd >/dev/null 2>&1; then
+      picked=$(fd --type f --hidden --follow --no-ignore --exclude .git 2>/dev/null | fzf)
+    else
+      picked=$(find . -type f 2>/dev/null | fzf)
+    fi
+    if [[ -n $picked ]]; then
+      LBUFFER+=$picked
+    fi
+    zle redisplay
+  }
+  zle -N _fzf_file_all_widget
+  bindkey '^[t' _fzf_file_all_widget
+fi
+
+# --- Alt+W = fuzzy worktree switcher ---------------------------------------
+if command -v fzf >/dev/null 2>&1; then
+  _fzf_worktree_widget() {
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then return; fi
+    local picked
+    picked=$(git worktree list --porcelain | sed -n 's/^worktree //p' | fzf --prompt 'worktree> ')
+    if [[ -n $picked ]]; then
+      cd "$picked"
+      zle reset-prompt
+    fi
+  }
+  zle -N _fzf_worktree_widget
+  bindkey '^[w' _fzf_worktree_widget
+fi
+
+# --- Alt+S = pick a Claude session and resume it; Alt+R = take over a background session ---
+_wt_session_widget() { BUFFER="wt -s"; zle accept-line }
+_wt_running_widget() { BUFFER="wt -r"; zle accept-line }
+zle -N _wt_session_widget
+zle -N _wt_running_widget
+bindkey '^[s' _wt_session_widget
+bindkey '^[r' _wt_running_widget
 
 # --- wt = open/create a ~/dev/wt worktree and start Claude (same script as Windows) ---
 wt() {
