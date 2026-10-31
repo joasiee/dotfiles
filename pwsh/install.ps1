@@ -36,9 +36,11 @@ function Get-DotfilesDir {
     }
 
     if ((Test-Path "$DEFAULT_DIR\.git")) {
-        git -C $DEFAULT_DIR pull --ff-only
+        git -C $DEFAULT_DIR pull --ff-only | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw 'Could not update the dotfiles repo.' }
     } elseif (-not (Test-Path $DEFAULT_DIR)) {
-        git clone --depth 1 $REPO_URL $DEFAULT_DIR
+        git clone --depth 1 $REPO_URL $DEFAULT_DIR | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw 'Could not clone the dotfiles repo.' }
     } else {
         Write-Error "$DEFAULT_DIR exists but is not a git repo."
         exit 1
@@ -60,6 +62,10 @@ function Install-WingetPackage {
 function Set-ProfileLink {
     param([string]$Src, [string]$Dest)
 
+    if (-not (Test-Path -LiteralPath $Src -PathType Leaf)) {
+        throw "Profile source not found: $Src"
+    }
+    $stub = ". '$($Src.Replace("'", "''"))'"
     $destDir = Split-Path $Dest -Parent
     if (-not (Test-Path $destDir)) {
         New-Item -ItemType Directory -Path $destDir -Force | Out-Null
@@ -69,6 +75,11 @@ function Set-ProfileLink {
         $item = Get-Item $Dest -Force
         if ($item.LinkType -eq 'SymbolicLink' -and $item.Target -eq $Src) {
             Write-Host "Profile already linked."
+            return
+        }
+        $content = if (-not $item.LinkType) { Get-Content -LiteralPath $Dest -Raw }
+        if ($content -and $content.Trim() -eq $stub) {
+            Write-Host 'Profile stub already configured.'
             return
         }
         $ts = Get-Date -Format 'yyyyMMddHHmmss'
@@ -82,7 +93,7 @@ function Set-ProfileLink {
     } catch {
         Write-Warning "Could not create symlink (run as Admin or enable Developer Mode)."
         Write-Warning "Falling back to dot-source stub."
-        Set-Content -Path $Dest -Value ". '$Src'"
+        Set-Content -LiteralPath $Dest -Value $stub
         Write-Host "Created stub: $Dest"
     }
 }
@@ -91,6 +102,8 @@ function Set-ProfileLink {
 
 $dotfilesDir = Get-DotfilesDir
 $profileSrc  = "$dotfilesDir\pwsh\Microsoft.PowerShell_profile.ps1"
+
+& "$dotfilesDir\pwsh\Update-SessionPath.ps1"
 
 # 1. Install tools via winget
 if (Get-Command winget -ErrorAction SilentlyContinue) {
@@ -101,6 +114,8 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
     Write-Warning '  zoxide: https://github.com/ajeetdsouza/zoxide#installation'
     Write-Warning '  fzf:    https://github.com/junegunn/fzf#windows'
 }
+
+& "$dotfilesDir\pwsh\Update-SessionPath.ps1"
 
 # 2. Ensure PSReadLine >= 2.3
 $psrl = Get-Module -ListAvailable -Name PSReadLine | Sort-Object Version -Descending | Select-Object -First 1

@@ -227,6 +227,10 @@ $out = ""
 }
 
 # ---- Dependencies ----
+if (-not (Get-Command zoxide -ErrorAction SilentlyContinue) -or
+    -not (Get-Command fzf -ErrorAction SilentlyContinue)) {
+    & "$PSScriptRoot\Update-SessionPath.ps1"
+}
 $env:_ZO_EXCLUDE_DIRS = "\\*"
 
 # Cache zoxide init to avoid spawning an external process on every session.
@@ -241,8 +245,11 @@ if (Test-Path $_zCache) { . $_zCache }
 Remove-Variable _zCache, _zExe -ErrorAction SilentlyContinue
 
 # Good defaults
-Set-PSReadLineOption -PredictionSource History
-Set-PSReadLineOption -PredictionViewStyle InlineView
+# Prediction rendering requires an interactive terminal with virtual terminal support.
+if ($Host.UI.SupportsVirtualTerminal -and -not [Console]::IsOutputRedirected) {
+    Set-PSReadLineOption -PredictionSource History
+    Set-PSReadLineOption -PredictionViewStyle InlineView
+}
 Set-PSReadLineOption -HistorySaveStyle SaveIncrementally
 Set-PSReadLineOption -HistoryNoDuplicates
 

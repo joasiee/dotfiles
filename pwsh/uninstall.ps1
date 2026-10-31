@@ -39,7 +39,7 @@ function Remove-ProfileLink {
 
     # Remove dot-source stub created as fallback
     $content = Get-Content $Dest -Raw -ErrorAction SilentlyContinue
-    if ($content -and $content.Trim() -eq ". '$Src'") {
+    if ($content -and $content.Trim() -eq ". '$($Src.Replace("'", "''"))'") {
         Remove-Item $Dest -Force
         Write-Host "Removed stub: $Dest"
         Restore-Backup -Path $Dest
