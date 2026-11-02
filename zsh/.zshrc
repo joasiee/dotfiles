@@ -1,3 +1,10 @@
+# User-installed commands, including Codex.
+typeset -U path
+path=("$HOME/.local/bin" $path)
+export PATH
+
+alias codex='codex --yolo'
+
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=1000000000
 export SAVEHIST=$HISTSIZE
@@ -24,7 +31,9 @@ prompt_nix_info() {
 
 PROMPT='%F{green}%n%f %F{blue}%~%f$(prompt_git_info)$(prompt_nix_info) %# '
 
-eval "$(direnv hook zsh)"
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook zsh)"
+fi
 
 # --- Windows Terminal: emit OSC 9;9 so Duplicate Pane inherits cwd ---------
 if [[ -n "${WT_SESSION:-}" ]]; then
@@ -102,6 +111,7 @@ fi
 # --- Alt+J = zoxide interactive jump (zi) ----------------------------------
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init zsh)"
+  alias cd='z'
   _zi_widget() {
     zi
     zle reset-prompt
@@ -164,22 +174,40 @@ if command -v fzf >/dev/null 2>&1; then
   bindkey '^[w' _fzf_worktree_widget
 fi
 
-# --- Alt+S = pick a Claude session and resume it; Alt+R = take over a background session ---
-_wt_session_widget() { BUFFER="wt -s"; zle accept-line }
-_wt_running_widget() { BUFFER="wt -r"; zle accept-line }
-zle -N _wt_session_widget
-zle -N _wt_running_widget
-bindkey '^[s' _wt_session_widget
-bindkey '^[r' _wt_running_widget
+# --- WSL worktree helper (requires PowerShell and the Windows script) ---
+if command -v pwsh >/dev/null 2>&1 && [[ -f /mnt/z/dev/.claude/wt/Open-DevWorktree.ps1 ]]; then
+  # Alt+S resumes a Claude session; Alt+R takes over a background session.
+  _wt_session_widget() { BUFFER="wt -s"; zle accept-line }
+  _wt_running_widget() { BUFFER="wt -r"; zle accept-line }
+  zle -N _wt_session_widget
+  zle -N _wt_running_widget
+  bindkey '^[s' _wt_session_widget
+  bindkey '^[r' _wt_running_widget
 
-# --- wt = open/create a ~/dev/wt worktree and start Claude (same script as Windows) ---
-wt() {
-  local cdfile dir
-  cdfile=$(mktemp)
-  WT_CD_FILE=$cdfile pwsh -NoProfile -File /mnt/z/dev/.claude/wt/Open-DevWorktree.ps1 "$@"
-  dir=$(<"$cdfile")
-  rm -f "$cdfile"
-  [[ -n $dir ]] && z "$dir"
-}
+  # Open/create a ~/dev/wt worktree and start Claude.
+  wt() {
+    local cdfile dir result
+    cdfile=$(mktemp) || return
+    WT_CD_FILE=$cdfile pwsh -NoProfile -File /mnt/z/dev/.claude/wt/Open-DevWorktree.ps1 "$@"
+    result=$?
+    dir=$(<"$cdfile")
+    rm -f "$cdfile"
+    (( result == 0 )) || return "$result"
+    if [[ -n $dir ]]; then
+      builtin cd -- "$dir"
+    fi
+  }
+fi
 
-source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+if [[ -r "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+
+# Bun (preserve a custom installation directory).
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+path=("$BUN_INSTALL/bin" $path)
+
+# Bun completions.
+if [[ -s "$BUN_INSTALL/_bun" ]]; then
+  source "$BUN_INSTALL/_bun"
+fi

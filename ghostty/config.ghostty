@@ -1,0 +1,25 @@
+# Pane shortcuts: minus = horizontal divider; plus = vertical divider.
+keybind = alt+shift+minus=new_split:down
+keybind = alt+shift+equal=new_split:right
+keybind = alt+shift+plus=new_split:right
+
+# Move focus between panes.
+keybind = alt+arrow_left=goto_split:left
+keybind = alt+arrow_right=goto_split:right
+keybind = alt+arrow_up=goto_split:up
+keybind = alt+arrow_down=goto_split:down
+
+# Resize the focused pane with Alt+Shift+arrow keys.
+keybind = alt+shift+left=resize_split:left,25
+keybind = alt+shift+right=resize_split:right,25
+keybind = alt+shift+up=resize_split:up,25
+keybind = alt+shift+down=resize_split:down,25
+
+# Start each new pane in the active pane's folder.
+split-inherit-working-directory = true
+
+# Close only the focused pane.
+keybind = ctrl+shift+w=close_surface
+
+# Paste with Ctrl+V.
+keybind = ctrl+v=paste_from_clipboard

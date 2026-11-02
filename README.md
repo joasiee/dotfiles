@@ -1,6 +1,6 @@
 # dotfiles
 
-Minimal shell setup for Zsh (Linux/macOS) and PowerShell 7 (Windows).
+Shell and terminal setup for Zsh and Ghostty (Linux/macOS), and PowerShell 7 (Windows).
 
 ---
 
@@ -28,8 +28,11 @@ This removes:
 
 - Symlinks `zsh/.zshrc` to `~/.zshrc`
 - Symlinks `tmux/.tmux.conf` to `~/.tmux.conf`
+- Symlinks `ghostty/config.ghostty` to `${XDG_CONFIG_HOME:-~/.config}/ghostty/config.ghostty`
+- Backs up existing files before linking; uninstall restores the latest backups
 - Installs or upgrades `fzf` from the official git repo if it's missing or older
 - Installs `tmux` on Ubuntu when available
+- Installs Ghostty on Arch/CachyOS via `pacman`, or macOS via Homebrew, if missing
 - Installs TPM and the `tmux-sensible` plugin
 - Prints a warning if dependencies are missing and Ubuntu install isn't available
 
@@ -37,6 +40,7 @@ This removes:
 
 - `zsh/.zshrc`
 - `tmux/.tmux.conf`
+- `ghostty/config.ghostty`
 - `install.sh`
 
 ### Dependencies
@@ -45,8 +49,19 @@ This removes:
 - `fzf`
 - `zoxide`
 - `tmux`
+- `ghostty` (optional graphical terminal)
 
 Set your login shell to zsh after installing dependencies.
+
+The shell adds `~/.local/bin` and `${BUN_INSTALL:-~/.bun}/bin` to PATH without
+duplicates, loads Bun completions when present, and uses zoxide for `cd` when
+available. Optional `direnv` and `~/.zsh/zsh-autosuggestions` integrations are
+loaded only when installed. The `codex` alias runs `codex --yolo`, disabling
+approval prompts and sandbox protections.
+
+The WSL-specific `wt` helper and its `Alt+S` / `Alt+R` session shortcuts are
+enabled only when `pwsh` and `/mnt/z/dev/.claude/wt/Open-DevWorktree.ps1` exist.
+See the [tmux quick start](tmux/QUICKSTART.md) for pane and window controls.
 
 ### Key bindings
 
@@ -55,7 +70,32 @@ Set your login shell to zsh after installing dependencies.
 - `Ctrl+F` fuzzy directory picker
 - `Alt+J` zoxide interactive jump (`zi`)
 - `Alt+G` fuzzy git branch checkout
+- `Alt+T` fuzzy file picker including ignored files
+- `Alt+W` fuzzy Git worktree switcher
 - `Up/Down` substring history search
+
+### Ghostty
+
+The config preserves the local pane and clipboard shortcuts:
+
+- `Alt+Shift+-` splits below; `Alt+Shift++` splits to the right
+- `Alt+Arrow` moves between panes
+- `Alt+Shift+Arrow` resizes the focused pane
+- `Ctrl+Shift+W` closes the focused pane
+- `Ctrl+V` pastes from the clipboard
+- New panes inherit the active pane's working directory
+
+Reload with `Ctrl+Shift+,` on Linux or `Cmd+Shift+,` on macOS.
+The config uses the `config.ghostty` filename supported since Ghostty 1.2.3.
+Existing legacy `ghostty/config` files and macOS configs under
+`~/Library/Application Support/com.mitchellh.ghostty/` can override these settings.
+See the [Ghostty configuration docs](https://ghostty.org/docs/config).
+
+On other distributions (including Ubuntu), or macOS without Homebrew, install
+Ghostty using the [installation docs](https://ghostty.org/docs/install/binary).
+The installer still links its config when automatic installation is unavailable.
+Uninstall removes the config symlink and restores its backup, leaving the Ghostty
+application installed.
 
 ---
 

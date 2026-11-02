@@ -126,6 +126,37 @@ ensure_tmux() {
   return 1
 }
 
+ensure_ghostty() {
+  if command -v ghostty >/dev/null 2>&1; then
+    return 0
+  fi
+
+  case "$(uname -s)" in
+    Darwin)
+      # A manually installed macOS app may not be on PATH.
+      if [ -d /Applications/Ghostty.app ] || [ -d "$HOME/Applications/Ghostty.app" ]; then
+        return 0
+      fi
+      if command -v brew >/dev/null 2>&1; then
+        brew install --cask ghostty
+        return
+      fi
+      ;;
+    Linux)
+      if command -v pacman >/dev/null 2>&1; then
+        if [ "$(id -u)" -eq 0 ]; then
+          pacman -S --needed --noconfirm ghostty
+        else
+          sudo pacman -S --needed --noconfirm ghostty
+        fi
+        return
+      fi
+      ;;
+  esac
+
+  return 1
+}
+
 ensure_tpm() {
   if ! command -v git >/dev/null 2>&1; then
     return 1
@@ -156,6 +187,9 @@ ensure_repo
 
 ensure_fzf || true
 ensure_tmux || true
+if ! ensure_ghostty; then
+  echo "Ghostty could not be installed automatically. See https://ghostty.org/docs/install/binary"
+fi
 
 if [ -d "$HOME/.fzf/bin" ]; then
   PATH="$HOME/.fzf/bin:$PATH"
@@ -167,11 +201,12 @@ link_file "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
 [ -e "$DOTFILES_DIR/zsh/.zshenv" ] || touch "$DOTFILES_DIR/zsh/.zshenv"
 link_file "$DOTFILES_DIR/zsh/.zshenv" "$HOME/.zshenv"
 link_file "$DOTFILES_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
+link_file "$DOTFILES_DIR/ghostty/config.ghostty" "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config.ghostty"
 
 ensure_tpm || true
 ensure_tmux_plugins || true
 
-echo "Linked Zsh and tmux dotfiles."
+echo "Linked Zsh, tmux, and Ghostty dotfiles."
 
 missing=""
 if ! command -v zsh >/dev/null 2>&1; then
