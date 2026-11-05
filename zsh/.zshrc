@@ -1,6 +1,8 @@
 # User-installed commands, including Codex.
 typeset -U path
 path=("$HOME/.local/bin" $path)
+# fzf installed by install.sh lives in ~/.fzf/bin
+[[ -d "$HOME/.fzf/bin" ]] && path=("$HOME/.fzf/bin" $path)
 export PATH
 
 alias codex='codex --yolo'
