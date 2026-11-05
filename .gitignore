@@ -1,2 +1,0 @@
-# Machine-local env (holds secrets); install.sh creates an empty one
-zsh/.zshenv

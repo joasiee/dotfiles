@@ -30,7 +30,6 @@ unlink_if_ours() {
 }
 
 unlink_if_ours "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
-unlink_if_ours "$DOTFILES_DIR/zsh/.zshenv" "$HOME/.zshenv"
 unlink_if_ours "$DOTFILES_DIR/tmux/.tmux.conf" "$HOME/.tmux.conf"
 unlink_if_ours "$DOTFILES_DIR/ghostty/config.ghostty" "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config.ghostty"
 
