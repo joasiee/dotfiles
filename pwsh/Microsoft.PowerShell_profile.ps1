@@ -83,10 +83,10 @@ function Add-GitWorktreeExisting {
 
 function Open-DevWorktree { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" @args }
 
-# Background auto-mode Claude in the orchestrator folder with a slim context: memory and policy CLAUDE.md only, no skills, tickr the only MCP
+# Background auto-mode Claude in the orchestrator folder with a slim context: memory, policy CLAUDE.md and instructions.md only, no skills, tickr the only MCP
 function Start-OrchestratorClaude {
     Push-Location "Z:\dev\.claude\orchestrator"
-    try { claude --bg --permission-mode auto -n orchestrator --settings settings.json --setting-sources user --mcp-config mcp.json --strict-mcp-config --disable-slash-commands @args }
+    try { claude --bg --permission-mode auto -n orchestrator --settings settings.json --setting-sources user --mcp-config mcp.json --strict-mcp-config --disable-slash-commands --append-system-prompt-file instructions.md @args }
     finally { Pop-Location }
 }
 
