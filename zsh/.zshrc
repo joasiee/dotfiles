@@ -188,7 +188,20 @@ if command -v pwsh >/dev/null 2>&1 && [[ -f /mnt/z/dev/.claude/wt/Open-DevWorktr
 
   # Open/create a ~/dev/wt worktree and start Claude.
   wt() {
-    local cdfile dir result
+    local cdfile dir result picked id
+    # wt -s runs the Go session indexer and fzf here, because starting pwsh alone takes over a second
+    local indexer=/mnt/z/dev/.claude/wt/bin/wt-index-linux
+    if [[ ( $1 == -s || $1 == -Session ) && -x $indexer ]]; then
+      shift
+      picked=$("$indexer" -cache /mnt/z/dev/.claude/wt/cache/linux -fzf |
+        fzf --ansi --tiebreak=index --reverse --height 60% --prompt 'session> ' --delimiter $'\t' --with-nth 1 --query "$*") || return 0
+      id=${${picked#*$'\t'}%%$'\t'*}
+      dir=${picked##*$'\t'}
+      print -P "%F{green}${dir//\%/%%}%f"
+      (( $+commands[zoxide] )) && zoxide add -- "$dir"
+      builtin cd -- "$dir" && claude --resume "$id"
+      return
+    fi
     cdfile=$(mktemp) || return
     WT_CD_FILE=$cdfile pwsh -NoProfile -File /mnt/z/dev/.claude/wt/Open-DevWorktree.ps1 "$@"
     result=$?
