@@ -81,7 +81,48 @@ function Add-GitWorktreeExisting {
 }
 
 
-function Open-DevWorktree { & "Z:\dev\.claude\wt\Open-DevWorktree.ps1" @args }
+# Fuzzy-picks an earlier Claude session, cds to its folder and resumes it
+function Resume-ClaudeSession {
+    $picked = & "Z:\dev\.claude\wt\bin\wt-index.exe" -projects (Join-Path $HOME '.claude\projects') -cache "Z:\dev\.claude\wt\cache" -fzf |
+        fzf --ansi --tiebreak=index --reverse --height 60% --prompt 'session> ' --delimiter "`t" --with-nth 1 --query "$args"
+    if (-not $picked) { return }
+    $f = $picked -split "`t"
+    z $f[2]
+    claude --resume $f[1]
+}
+
+# Fuzzy-picks a running background Claude session, stops it and resumes it in this terminal
+function Resume-BackgroundClaude {
+    $bg = @(claude agents --json | ConvertFrom-Json | Where-Object kind -eq 'background' | Sort-Object startedAt -Descending)
+    if (-not $bg) { Write-Host 'No background sessions are running' -ForegroundColor DarkGray; return }
+    $esc = [char]27
+    $now = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
+    $lines = $bg | ForEach-Object {
+        $minutes = [math]::Floor(($now - $_.startedAt) / 60000)
+        $age = if ($minutes -ge 60) { "$([math]::Floor($minutes / 60))h" } else { "${minutes}m" }
+        # Yellow waits for you, green is working, grey is idle
+        $color = if ($_.state -eq 'blocked') { 33 } elseif ($_.status -eq 'busy') { 32 } else { 90 }
+        "$esc[${color}m$("$($_.state)".PadRight(8))$esc[0m  $($_.name)  $esc[36m$(Split-Path $_.cwd -Leaf)$esc[0m  $esc[90m$age  $($_.id)$esc[0m`t$($_.id)"
+    }
+    $picked = $lines | fzf --ansi --reverse --height 40% --prompt 'background> ' --delimiter "`t" --with-nth 1
+    if (-not $picked) { return }
+    $s = $bg | Where-Object id -eq ($picked -split "`t")[1]
+    if ($s.status -eq 'busy') {
+        $answer = Read-Host "$($s.name) is mid-turn: [s]top the turn and take it over, [a]ttach and keep it in the background"
+        if ($answer -eq 'a') { claude attach $s.id; return }
+        if ($answer -ne 's') { return }
+    }
+    # A session that never got a prompt has no transcript to resume, so attach to keep its launch flags
+    $transcript = Join-Path $HOME '.claude' 'projects' ($s.cwd -replace '[^A-Za-z0-9]', '-') "$($s.sessionId).jsonl"
+    if (-not (Test-Path -LiteralPath $transcript)) { claude attach $s.id; return }
+    claude stop $s.id | Out-Null
+    # Resuming while the background process still runs would start a second copy of the session
+    $deadline = (Get-Date).AddSeconds(15)
+    while ($s.pid -and (Get-Process -Id $s.pid -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
+    Write-Host "$($s.name)  [$($s.cwd)]" -ForegroundColor Green
+    z $s.cwd
+    claude --resume $s.sessionId
+}
 
 # Background auto-mode Claude in the orchestrator folder with a slim context: memory, policy CLAUDE.md and instructions.md only, no skills, tickr the only MCP
 function Start-OrchestratorClaude {
@@ -144,7 +185,6 @@ Set-Alias zwxo Start-ZenzWeb-Legacy # Old (Npm/ZenzWeb)
 # Git & Nav
 Set-Alias gwa   Add-GitWorktree
 Set-Alias gwae  Add-GitWorktreeExisting
-Set-Alias wt    Open-DevWorktree   # shadows Windows Terminal's wt; use wt.exe for that
 Set-Alias so    Start-OrchestratorClaude
 Set-Alias main Set-MainDirectory
 Set-Alias dev  Set-DevDirectory
@@ -303,14 +343,14 @@ Set-PSReadLineKeyHandler -Key Alt+j -ScriptBlock {
 # 2b) Alt+S = fuzzy pick a Claude session, cd to its folder and resume it
 Set-PSReadLineKeyHandler -Key Alt+s -ScriptBlock {
     [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("wt -s")
+    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("Resume-ClaudeSession")
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
 }
 
 # 2c) Alt+R = fuzzy pick a running background Claude session and move it into this terminal
 Set-PSReadLineKeyHandler -Key Alt+r -ScriptBlock {
     [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("wt -r")
+    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("Resume-BackgroundClaude")
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
 }
 

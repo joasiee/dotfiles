@@ -176,42 +176,70 @@ if command -v fzf >/dev/null 2>&1; then
   bindkey '^[w' _fzf_worktree_widget
 fi
 
-# --- WSL worktree helper (requires PowerShell and the Windows script) ---
-if command -v pwsh >/dev/null 2>&1 && [[ -f /mnt/z/dev/.claude/wt/Open-DevWorktree.ps1 ]]; then
-  # Alt+S resumes a Claude session; Alt+R takes over a background session.
-  _wt_session_widget() { BUFFER="wt -s"; zle accept-line }
-  _wt_running_widget() { BUFFER="wt -r"; zle accept-line }
-  zle -N _wt_session_widget
-  zle -N _wt_running_widget
-  bindkey '^[s' _wt_session_widget
-  bindkey '^[r' _wt_running_widget
-
-  # Open/create a ~/dev/wt worktree and start Claude.
-  wt() {
-    local cdfile dir result picked id
-    # wt -s runs the Go session indexer and fzf here, because starting pwsh alone takes over a second
-    local indexer=/mnt/z/dev/.claude/wt/bin/wt-index-linux
-    if [[ ( $1 == -s || $1 == -Session ) && -x $indexer ]]; then
-      shift
-      picked=$("$indexer" -cache /mnt/z/dev/.claude/wt/cache/linux -fzf |
-        fzf --ansi --tiebreak=index --reverse --height 60% --prompt 'session> ' --delimiter $'\t' --with-nth 1 --query "$*") || return 0
-      id=${${picked#*$'\t'}%%$'\t'*}
-      dir=${picked##*$'\t'}
-      print -P "%F{green}${dir//\%/%%}%f"
-      (( $+commands[zoxide] )) && zoxide add -- "$dir"
-      builtin cd -- "$dir" && claude --resume "$id"
-      return
-    fi
-    cdfile=$(mktemp) || return
-    WT_CD_FILE=$cdfile pwsh -NoProfile -File /mnt/z/dev/.claude/wt/Open-DevWorktree.ps1 "$@"
-    result=$?
-    dir=$(<"$cdfile")
-    rm -f "$cdfile"
-    (( result == 0 )) || return "$result"
-    if [[ -n $dir ]]; then
-      builtin cd -- "$dir"
-    fi
+# --- Alt+S = fuzzy pick an earlier Claude session, cd to its folder and resume it ---
+if command -v fzf >/dev/null 2>&1 && [[ -x /mnt/z/dev/.claude/wt/bin/wt-index-linux ]]; then
+  claude_resume_session() {
+    local picked id dir
+    picked=$(/mnt/z/dev/.claude/wt/bin/wt-index-linux -cache /mnt/z/dev/.claude/wt/cache/linux -fzf |
+      fzf --ansi --tiebreak=index --reverse --height 60% --prompt 'session> ' --delimiter $'\t' --with-nth 1 --query "$*") || return 0
+    id=${${picked#*$'\t'}%%$'\t'*}
+    dir=${picked##*$'\t'}
+    print -P "%F{green}${dir//\%/%%}%f"
+    (( $+commands[zoxide] )) && zoxide add -- "$dir"
+    builtin cd -- "$dir" && claude --resume "$id"
   }
+  _claude_resume_widget() { BUFFER="claude_resume_session"; zle accept-line }
+  zle -N _claude_resume_widget
+  bindkey '^[s' _claude_resume_widget
+fi
+
+# --- Alt+R = fuzzy pick a running background Claude session and move it into this terminal ---
+if command -v fzf >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+  # Prints one tab-separated line per background session, newest first: display, id, sessionId, cwd, status, pid, name
+  _claude_background_lines() {
+    claude agents --json | python3 -c '
+import json, os, sys, time
+now = time.time() * 1000
+bg = [a for a in json.load(sys.stdin) if a.get("kind") == "background"]
+for a in sorted(bg, key=lambda a: a.get("startedAt", 0), reverse=True):
+    minutes = int((now - a.get("startedAt", now)) // 60000)
+    age = "%dh" % (minutes // 60) if minutes >= 60 else "%dm" % minutes
+    # Yellow waits for you, green is working, grey is idle
+    color = 33 if a.get("state") == "blocked" else 32 if a.get("status") == "busy" else 90
+    state = str(a.get("state") or "").ljust(8)
+    name = a.get("name") or ""
+    leaf = os.path.basename(a["cwd"].rstrip("/"))
+    shown = "\x1b[%dm%s\x1b[0m  %s  \x1b[36m%s\x1b[0m  \x1b[90m%s  %s\x1b[0m" % (color, state, name, leaf, age, a["id"])
+    print(shown, a["id"], a["sessionId"], a["cwd"], a.get("status") or "", a.get("pid") or "", name, sep="\t")
+'
+  }
+  claude_resume_background() {
+    local lines picked answer transcript
+    local -a f
+    lines=$(_claude_background_lines) || return
+    if [[ -z $lines ]]; then print -P '%F{8}No background sessions are running%f'; return 0; fi
+    picked=$(print -r -- "$lines" | fzf --ansi --reverse --height 40% --prompt 'background> ' --delimiter $'\t' --with-nth 1) || return 0
+    f=("${(@ps:\t:)picked}")
+    local id=$f[2] sid=$f[3] dir=$f[4] sess_status=$f[5] pid=$f[6] name=$f[7]
+    if [[ $sess_status == busy ]]; then
+      read -r "answer?$name is mid-turn: [s]top the turn and take it over, [a]ttach and keep it in the background: "
+      if [[ $answer == a ]]; then claude attach "$id"; return; fi
+      [[ $answer == s ]] || return 0
+    fi
+    # A session that never got a prompt has no transcript to resume, so attach to keep its launch flags
+    transcript="$HOME/.claude/projects/${dir//[^A-Za-z0-9]/-}/$sid.jsonl"
+    if [[ ! -f $transcript ]]; then claude attach "$id"; return; fi
+    claude stop "$id" >/dev/null
+    # Resuming while the background process still runs would start a second copy of the session
+    local deadline=$(( SECONDS + 15 ))
+    while [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null && (( SECONDS < deadline )); do sleep 0.2; done
+    print -P "%F{green}${name//\%/%%}  [${dir//\%/%%}]%f"
+    (( $+commands[zoxide] )) && zoxide add -- "$dir"
+    builtin cd -- "$dir" && claude --resume "$sid"
+  }
+  _claude_background_widget() { BUFFER="claude_resume_background"; zle accept-line }
+  zle -N _claude_background_widget
+  bindkey '^[r' _claude_background_widget
 fi
 
 if [[ -r "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
@@ -226,3 +254,8 @@ path=("$BUN_INSTALL/bin" $path)
 if [[ -s "$BUN_INSTALL/_bun" ]]; then
   source "$BUN_INSTALL/_bun"
 fi
+
+# Background auto-mode Claude orchestrator with a slim context: instructions.md only, no skills, tickr the only MCP
+so() {
+  (builtin cd ~/dev/.claude/orchestrator && claude --bg --permission-mode auto -n orchestrator --settings settings.json --setting-sources user --mcp-config mcp.json --strict-mcp-config --disable-slash-commands --append-system-prompt-file instructions.md "$@")
+}
